@@ -49,13 +49,13 @@ class GradleScriptingSupportProvider(val project: Project) : ScriptingSupport.Pr
     override fun getSupport(file: VirtualFile): ScriptingSupport? {
         if (isGradleKotlinScript(file)) {
             findRoot(file)?.let {
-                logger.info("support for ${file.path} - $it")
+                scriptingDebugLog { "scripting support for ${file.path} - $it" }
                 return it
             }
 
             val externalProjectSettings = findExternalProjectSettings(file) ?: return null
             if (kotlinDslScriptsModelImportSupported(getGradleVersion(project, externalProjectSettings))) {
-                logger.info("support for ${file.path} - unlinked")
+                scriptingDebugLog { "scripting support for ${file.path} - $unlinkedFilesSupport" }
                 return unlinkedFilesSupport
             }
         }
@@ -102,10 +102,9 @@ class GradleScriptingSupportProvider(val project: Project) : ScriptingSupport.Pr
         project.messageBus.connect(project).subscribe(GradleSettingsListener.TOPIC, listener)
     }
 
-    private val logger = Logger.getLogger("#org.jetbrains.kotlin.idea.scripting.gradle")
-
     fun update(build: KotlinDslGradleBuildSync) {
-        logger.info("after sync ${build.workingDir} ${build.models.joinToString() }")
+        scriptingDebugLog { "script models received for ${build.workingDir}: ${build.models.joinToString()}" }
+
         // fast path for linked gradle builds without .gradle.kts support
         if (build.models.isEmpty()) {
             val root = roots.findRoot(build.workingDir) ?: return
@@ -113,7 +112,6 @@ class GradleScriptingSupportProvider(val project: Project) : ScriptingSupport.Pr
         }
 
         val templateClasspath = findTemplateClasspath(build) ?: return
-        logger.info("getSupport ${templateClasspath.joinToString()}")
         val data = ConfigurationData(templateClasspath, build.models)
         val newSupport = createSupport(build.workingDir) { data } ?: return
         KotlinDslScriptModels.write(newSupport.buildRoot, data)
@@ -168,8 +166,9 @@ class GradleScriptingSupportProvider(val project: Project) : ScriptingSupport.Pr
         // todo: find definition according to build.workingDir
 
         val scriptDefinition = anyScript.findScriptDefinition(project)
-        logger.info("findTemplateClasspath scriptDefinition=$scriptDefinition")
-        logger.info("isReady ${ScriptDefinitionsManager.getInstance(project).isReady()}")
+
+        scriptingDebugLog { "use $scriptDefinition for ${build.workingDir}" }
+
         val definition = scriptDefinition ?: return null
         return definition.asLegacyOrNull<KotlinScriptDefinitionFromAnnotatedTemplate>()
             ?.templateClasspath?.map { it.path }
@@ -199,6 +198,8 @@ class GradleScriptingSupportProvider(val project: Project) : ScriptingSupport.Pr
             }
 
         override fun recreateRootsCache(): ScriptClassRootsCache = ScriptClassRootsCache.empty(project)
+
+        override fun toString(): String = "Scripting Support for unlinked Gradle project"
     }
 
     fun isMissingConfigurationCanBeLoadedDuringImport(file: VirtualFile): Boolean {

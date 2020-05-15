@@ -19,10 +19,10 @@ import com.intellij.util.containers.ConcurrentFactoryMap
 import org.jetbrains.kotlin.idea.caches.project.getAllProjectSdks
 import org.jetbrains.kotlin.idea.core.script.LOG
 import org.jetbrains.kotlin.idea.core.script.ScriptConfigurationManager
+import org.jetbrains.kotlin.idea.core.script.debug
 import org.jetbrains.kotlin.idea.util.getProjectJdkTableSafe
 import org.jetbrains.kotlin.scripting.resolve.ScriptCompilationConfigurationWrapper
 import java.io.File
-import java.util.logging.Logger
 
 abstract class ScriptClassRootsCache(
     private val project: Project,
@@ -61,12 +61,9 @@ abstract class ScriptClassRootsCache(
     private val scriptsDependenciesCache: MutableMap<VirtualFile, Fat> =
         ConcurrentFactoryMap.createWeakMap { file ->
             val configuration = getConfiguration(file) ?: return@createWeakMap null
-            logger.info("configuration for ${file.path} - $configuration")
 
             val roots = configuration.dependenciesClassPath
             val sdk = getScriptSdk(file)
-
-            logger.info("sdk for ${file.path} - ${sdk}")
 
             @Suppress("FoldInitializerAndIfToElvis")
             if (sdk == null) {
@@ -88,11 +85,10 @@ abstract class ScriptClassRootsCache(
         return scriptsDependenciesCache[file]?.classFilesScope ?: GlobalSearchScope.EMPTY_SCOPE
     }
 
-    private val logger = Logger.getLogger("ScriptClassRoots")
-
     fun getScriptConfiguration(file: VirtualFile): ScriptCompilationConfigurationWrapper? {
-        logger.info("getScriptConfiguration for ${file.path}")
-        return scriptsDependenciesCache[file]?.scriptConfiguration
+        val scriptConfiguration = scriptsDependenciesCache[file]?.scriptConfiguration
+        debug(file) { "script configuration = $scriptConfiguration" }
+        return scriptConfiguration
     }
 
     fun hasNotCachedRoots(roots: ScriptClassRootsStorage.Companion.ScriptClassRoots): Boolean {
