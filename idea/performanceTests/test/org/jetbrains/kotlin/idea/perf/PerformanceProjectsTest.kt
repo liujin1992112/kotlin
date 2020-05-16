@@ -14,9 +14,9 @@ import org.jetbrains.kotlin.idea.core.script.ScriptConfigurationManager
 import org.jetbrains.kotlin.idea.highlighter.KotlinPsiChecker
 import org.jetbrains.kotlin.idea.highlighter.KotlinPsiCheckerAndHighlightingUpdater
 import org.jetbrains.kotlin.idea.perf.Stats.Companion.TEST_KEY
-import org.jetbrains.kotlin.idea.perf.Stats.Companion.WARM_UP
 import org.jetbrains.kotlin.idea.perf.Stats.Companion.runAndMeasure
 import org.jetbrains.kotlin.idea.perf.Stats.Companion.tcSuite
+import org.jetbrains.kotlin.idea.perf.profilers.HighlightProjectPerformanceTest
 import org.jetbrains.kotlin.idea.testFramework.Fixture
 import org.jetbrains.kotlin.idea.testFramework.Fixture.Companion.cleanupCaches
 import org.jetbrains.kotlin.idea.testFramework.Fixture.Companion.isAKotlinScriptFile
@@ -29,10 +29,10 @@ class PerformanceProjectsTest : AbstractPerformanceProjectsTest() {
     companion object {
 
         @JvmStatic
-        var warmedUp: Boolean = false
+        val hwStats: Stats = Stats("helloWorld project")
 
         @JvmStatic
-        val hwStats: Stats = Stats("helloWorld project")
+        val warmUp = WarmUpProject(HighlightProjectPerformanceTest.hwStats)
 
         @JvmStatic
         val timer: AtomicLong = AtomicLong()
@@ -53,15 +53,10 @@ class PerformanceProjectsTest : AbstractPerformanceProjectsTest() {
 
     override fun setUp() {
         super.setUp()
-        // warm up: open simple small project
-        if (!warmedUp) {
-            warmUpProject(hwStats, "src/HelloMain.kt") { perfOpenHelloWorld(hwStats, WARM_UP) }
-            warmedUp = true
-        }
+        warmUp.warmUp(this)
     }
 
     fun testHelloWorldProject() {
-
         tcSuite("Hello world project") {
             myProject = perfOpenHelloWorld(hwStats)
 

@@ -75,17 +75,20 @@ abstract class AbstractPerformanceProjectsTest : UsefulTestCase() {
             val javaSdk = JavaSdk.getInstance()
             jdk18 = javaSdk.createJdk("1.8", homePath)
             val internal = javaSdk.createJdk("IDEA jdk", homePath)
+            val gradle = javaSdk.createJdk(GRADLE_JDK_NAME, homePath)
 
             val jdkTable = getProjectJdkTableSafe()
             jdkTable.addJdk(jdk18, testRootDisposable)
             jdkTable.addJdk(internal, testRootDisposable)
+            jdkTable.addJdk(gradle, testRootDisposable)
+
             KotlinSdkType.setUpIfNeeded()
         }
 
         GradleProcessOutputInterceptor.install(testRootDisposable)
     }
 
-    protected fun warmUpProject(stats: Stats, vararg filesToHighlight: String, openProject: () -> Project) {
+    internal fun warmUpProject(stats: Stats, vararg filesToHighlight: String, openProject: () -> Project) {
         assertTrue(filesToHighlight.isNotEmpty())
 
         val project = openProject()
